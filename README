@@ -1,0 +1,43 @@
+ASCII: http://http://ascii-table.com/ 7 bits (127 characters)
+
+Different uses for that remaining bit (code pages):
+http://www.i18nguy.com/unicode/codepages.html#msftdos
+
+This kind of worked for a while, as long as documents where used on the same machine
+as they were created, and you only had to deal with one language.
+
+As soon as the Internet happened it became quite common to move strings from one 
+machine to another.
+
+Unicode:
+
+It's an effort to create a character set that includes every writing system in the
+planet, including dead and ficticious languages.
+
+A letter is mapped to a number (code point) and this is just a concept, it has nothing
+to do with its physical representation.
+
+Some of the problems in defining this standard have to do with identifying which 
+letters in different languages are actually the same.
+
+open U0000.pdf
+open U0B80.pdf
+http://www.unicode.org/charts/
+
+Hello
+U+0048 U+0065 U+006C U+006C U+006F
+
+Encodings:
+
+Open hola.latin1 and hola.utf8 in TextViewer
+Open hola.latin1 and hola.utf8 in Chrome, change encoding of both files.
+
+xxd hola.latin1
+xxd hola.utf8
+
+See how ASCII characters are encoded the same in utf8 and latin1.
+See how UTF8 encoding takes more space for some characters.
+
+Text without knowing it's encoding doesn't mean anything, it's just bytes.
+How to specify encoding:
+HTTP- Content Type Header.
