@@ -1,3 +1,5 @@
+Character Sets and Character Encodings.
+
 ASCII: http://http://ascii-table.com/ 7 bits (127 characters)
 
 Different uses for that remaining bit (code pages):
@@ -29,8 +31,32 @@ U+0048 U+0065 U+006C U+006C U+006F
 
 Encodings:
 
-Open hola.latin1 and hola.utf8 in TextViewer
-Open hola.latin1 and hola.utf8 in Chrome, change encoding of both files.
+One obvious way of encoding those code points would be using 2 bytes per code point:
+00 48 00 65 00 6C 00 6C 00 6F
+
+But this could also be:
+48 00 65 00 6C 00 6C 00 6F 00
+
+This is actually UTF-16/UCS2 and it has both little endian and big endian mode.
+There is a convention to store a Byte Order Mask (BOM) at the beginning of the file:
+FE FF or FF FE but it's not always there
+
+Encoding English in this way wastes a lot of space since most characters are below +U00FF
+
+Unicode Transformation Format-8 (UTF-8):
+UTF-8 encodes each Unicode character as a variable number of 1 to 4 octets, where the number of octets depends on 
+the integer value assigned to the Unicode character. It is an efficient encoding of Unicode documents that use 
+mostly US-ASCII characters because it represents each character in the range U+0000 through U+007F as a single octet.
+UTF-8 is the default encoding for XML.
+
+Hello - 48 65 6C 6C 6F
+
+There is also UCS4/UTF32 - Really inefficient.
+
+UTF-8 is more efficient for western languages but for other languages UTF-16 can be more efficient.
+
+Open hello.latin1 and hello.utf8 in TextViewer
+Open hello.latin1 and hello.utf8 in Chrome, change encoding of both files.
 
 xxd hola.latin1
 xxd hola.utf8
@@ -40,4 +66,12 @@ See how UTF8 encoding takes more space for some characters.
 
 Text without knowing it's encoding doesn't mean anything, it's just bytes.
 How to specify encoding:
-HTTP- Content Type Header.
+HTTP   - Content Type Header.
+HTML   - Content Type meta tag. This could be tricky but it isn't. The meta tag should be the first thing in the 
+head section. Browsers try to guess based on frequency of bytes.
+E-mail - Content Type Header
+
+References:
+http://www.unicode.org
+http://www.utf-8.com/
+http://www.joelonsoftware.com/articles/Unicode.html
