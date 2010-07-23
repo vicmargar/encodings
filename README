@@ -8,7 +8,7 @@ http://www.i18nguy.com/unicode/codepages.html#msftdos
 This kind of worked for a while, as long as documents where used on the same machine
 as they were created, and you only had to deal with one language.
 
-As soon as the Internet happened it became quite common to move strings from one 
+As soon as the Internet happened it became quite common to move strings from one
 machine to another.
 
 Unicode:
@@ -19,7 +19,7 @@ planet, including dead and ficticious languages.
 A letter is mapped to a number (code point) and this is just a concept, it has nothing
 to do with its physical representation.
 
-Some of the problems in defining this standard have to do with identifying which 
+Some of the problems in defining this standard have to do with identifying which
 letters in different languages are actually the same.
 
 open U0000.pdf
@@ -44,8 +44,8 @@ FE FF or FF FE but it's not always there
 Encoding English in this way wastes a lot of space since most characters are below +U00FF
 
 Unicode Transformation Format-8 (UTF-8):
-UTF-8 encodes each Unicode character as a variable number of 1 to 4 octets, where the number of octets depends on 
-the integer value assigned to the Unicode character. It is an efficient encoding of Unicode documents that use 
+UTF-8 encodes each Unicode character as a variable number of 1 to 4 octets, where the number of octets depends on
+the integer value assigned to the Unicode character. It is an efficient encoding of Unicode documents that use
 mostly US-ASCII characters because it represents each character in the range U+0000 through U+007F as a single octet.
 UTF-8 is the default encoding for XML.
 
@@ -58,8 +58,13 @@ UTF-8 is more efficient for western languages but for other languages UTF-16 can
 Open hello.latin1 and hello.utf8 in TextViewer
 Open hello.latin1 and hello.utf8 in Chrome, change encoding of both files.
 
-xxd hola.latin1
-xxd hola.utf8
+victor@victor ~/encodings (master)*$ xxd hello.utf8
+0000000: 4865 6c6c 6f20 4920 616d 2056 c3ad 6374  Hello I am V..ct
+0000010: 6f72                                     or
+victor@victor ~/encodings (master)*$ xxd hello.latin1
+0000000: 4865 6c6c 6f20 4920 616d 2056 ed63 746f  Hello I am V.cto
+0000010: 72                                       r
+
 
 See how ASCII characters are encoded the same in utf8 and latin1.
 See how UTF8 encoding takes more space for some characters.
@@ -67,11 +72,109 @@ See how UTF8 encoding takes more space for some characters.
 Text without knowing it's encoding doesn't mean anything, it's just bytes.
 How to specify encoding:
 HTTP   - Content Type Header.
-HTML   - Content Type meta tag. This could be tricky but it isn't. The meta tag should be the first thing in the 
+HTML   - Content Type meta tag. This could be tricky but it isn't. The meta tag should be the first thing in the
 head section. Browsers try to guess based on frequency of bytes.
 E-mail - Content Type Header
+
+Ruby 1.8:
+
+victor@victor ~/encodings (master)*$ rvm 1.8.6
+victor@victor ~/encodings (master)*$ irb
+ruby-1.8.6-p399 > latin1 = File.open("hello.latin1").read
+ => "Hello I am V\355ctor"
+ruby-1.8.6-p399 > 0355
+ => 237
+ruby-1.8.6-p399 > 237.to_s(16)
+ => "ed"
+ruby-1.8.6-p399 > utf8 = File.open("hello.utf8").read
+ => "Hello I am V\303\255ctor"
+ruby-1.8.6-p399 > 0303
+ => 195
+ruby-1.8.6-p399 > 195.to_s(16)
+ => "c3"
+ruby-1.8.6-p399 > 0255
+ => 173
+ruby-1.8.6-p399 > 173.to_s(16)
+ => "ad"
+
+ruby-1.8.6-p399 > latin1 << utf8
+ => "Hello I am V\355ctorHello I am V\303\255ctor"
+
+Ruby 1.8 has some support for Encodings:
+
+victor@victor ~/encodings (master)*$ irb
+ruby-1.8.6-p399 > utf8 = File.open("hello.utf8").read
+ => "Hello I am V\303\255ctor"
+ruby-1.8.6-p399 > $KCODE = "U"
+ => "U"
+ruby-1.8.6-p399 > utf8 = File.open("hello.utf8").read
+ => "Hello I am Víctor"
+
+There are 4 possible values for $KCODE:
+NONE: "N"
+EUC: "E" Asian Encoding
+Shift-JS: "S" Asian Encoding
+UTF-8: "U"
+
+Support in regular expressions:
+
+ruby -e 'p "Résumé".scan(/./m)'
+["R", "\303", "\251", "s", "u", "m", "\303", "\251"]
+
+ruby -e 'p "Résumé".scan(/./mu)'
+["R", "\303\251", "s", "u", "m", "\303\251"]
+
+ruby -e 'p "Résumé".size'
+8
+
+ruby -e 'p "Résumé".scan(/./mu).size'
+6
+
+ruby -e 'p "Résumé".unpack("U*")'
+[82, 233, 115, 117, 109, 233]
+
+ruby -e 'p "Résumé"'
+"R\303\251sum\303\251"
+
+ruby -KUe 'p "Résumé"'
+"Résumé"
+
+ruby -KUe 'p "Résumé".scan(/./m)'
+["R", "é", "s", "u", "m", "é"]
+
+#!/usr/bin/env ruby -wKU
+
+Iconv: C library to handle character conversion
+
+iconv --list
+
+irb
+ruby-1.8.6-p399 > $KCODE = "U"
+ => "U"
+ruby-1.8.6-p399 > require "iconv"
+ => true
+ruby-1.8.6-p399 > latin1 = File.open("hello.latin1").read
+ => "Hello I am V?ctor"
+ruby-1.8.6-p399 > utf8 = File.open("hello.utf8").read
+ => "Hello I am Víctor"
+ruby-1.8.6-p399 > latin1_in_utf8 = Iconv.conv("UTF8", "LATIN1", latin1)
+ => "Hello I am Víctor"
+ruby-1.8.6-p399 > latin1_in_utf8 + utf8
+ => "Hello I am VíctorHello I am Víctor"
+
+Problems with 1.8 encoding support:
+
+No enough encodings supported
+Regexp-only support just isn't comprehensive enough
+$KCODE is a global setting for all encodings
+
+Ruby 1.9:
+
+Erlang:
 
 References:
 http://www.unicode.org
 http://www.utf-8.com/
 http://www.joelonsoftware.com/articles/Unicode.html
+http://blog.grayproductions.net/categories/character_encodings
+http://yehudakatz.com/2010/05/17/encodings-unabridged/
