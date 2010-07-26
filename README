@@ -170,7 +170,43 @@ $KCODE is a global setting for all encodings
 
 Ruby 1.9:
 
+In Ruby 1.9 Strings are both raw bytes plus information about the encoding.
+This is different from other languages that favor only 1 type of encoding (UTF-8).
+
+p __ENCODING__
+
+ruby encoding-1.9.rb
+#<Encoding:US-ASCII>
+
+ruby encoding-1.9_comment.rb
+#<Encoding:UTF-8>
+
+-e gets the encoding from the environment
+echo $LANG
+en_GB.UTF-8
+
+ruby -e 'p __ENCODING__'
+#<Encoding:UTF-8>
+
+ruby -e 'p "Résumé".scan(/./m)'
+["R", "é", "s", "u", "m", "é"]
+
+ruby -e 'p "Résumé".size'
+6
+
+Two methods: encoding and force_encoding
+
+Read a file specifying external and internal encoding
+
+Internal Encoding and External Encoding (defaults)
+
+Exceptions when concatenating different encodings?
+
+Exception when converting to a character encoding that doesn't contain the characters:
+
 Erlang:
+
+GSM:
 
 References:
 http://www.unicode.org
@@ -178,3 +214,4 @@ http://www.utf-8.com/
 http://www.joelonsoftware.com/articles/Unicode.html
 http://blog.grayproductions.net/categories/character_encodings
 http://yehudakatz.com/2010/05/17/encodings-unabridged/
+http://nuclearsquid.com/writings/ruby-1-9-encodings.html
