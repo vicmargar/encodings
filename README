@@ -171,7 +171,7 @@ $KCODE is a global setting for all encodings
 Ruby 1.9:
 
 In Ruby 1.9 Strings are both raw bytes plus information about the encoding.
-This is different from other languages that favor only 1 type of encoding (UTF-8).
+This is different from other languages that favour only 1 type of encoding (UTF-8).
 
 p __ENCODING__
 
@@ -181,7 +181,8 @@ ruby encoding-1.9.rb
 ruby encoding-1.9_comment.rb
 #<Encoding:UTF-8>
 
--e gets the encoding from the environment
+-e gets the encoding from the environment:
+
 echo $LANG
 en_GB.UTF-8
 
@@ -194,15 +195,122 @@ ruby -e 'p "Résumé".scan(/./m)'
 ruby -e 'p "Résumé".size'
 6
 
-Two methods: encoding and force_encoding
+ruby -e 'p "Résumé".encoding'
+#<Encoding:UTF-8>
 
-Read a file specifying external and internal encoding
+ruby -e 'p "Résumé".size'
+6
 
-Internal Encoding and External Encoding (defaults)
+ruby -e 'p "Résumé".encoding'
+#<Encoding:UTF-8>
 
-Exceptions when concatenating different encodings?
+ruby -e 'p "Résumé".each_byte{|b| p b}'
+82
+195
+169
+115
+117
+109
+195
+169
+"Résumé"
 
-Exception when converting to a character encoding that doesn't contain the characters:
+ruby -e 'p "Résumé".each_char{|c| p c}'
+"R"
+"é"
+"s"
+"u"
+"m"
+"é"
+"Résumé"
+
+ruby -e 'p "Résumé".each_codepoint{|c| p c}'
+82
+233
+115
+117
+109
+233
+"Résumé"
+
+ruby -e 'p "Résumé".bytes.to_a'
+[82, 195, 169, 115, 117, 109, 195, 169]
+
+Encode Method: (Changes encoding metadata + raw bytes)
+
+ruby -e 'p "Résumé".encode("ISO-8859-1")'
+"R?sum?"
+
+ruby -e 'p "Résumé".encode("ISO-8859-1").size'
+6
+
+ruby -e 'p "Résumé".encode("ISO-8859-1").encoding'
+#<Encoding:ISO-8859-1>
+
+ruby -e 'p "Résumé".encode("ISO-8859-1").bytes.to_a'
+[82, 233, 115, 117, 109, 233]
+
+Force Encoding: (only changes metadata)
+
+ruby -e 'p [82, 233, 115, 117, 109, 233].map{|c| c.to_s(16)}'
+["52", "e9", "73", "75", "6d", "e9"]
+
+ruby -e 'p "\x52\xe9\x73\x75\x6d\xe9"'
+"R\xE9sum\xE9"
+
+ruby -e 'p "\x52\xe9\x73\x75\x6d\xe9".encoding'
+#<Encoding:UTF-8>
+
+ruby -e 'p "\x52\xe9\x73\x75\x6d\xe9".force_encoding("ISO-8859-1")'
+"R?sum?"
+
+ruby -e 'p "\x52\xe9\x73\x75\x6d\xe9".force_encoding("ISO-8859-1").encode("UTF-8")'
+"Résumé"
+
+Read a file specifying external and internal encoding:
+
+rvm 1.9.2
+irb
+
+ruby-1.9.2-preview1 > File.open("hello.latin1").read
+ => "Hello I am V\xEDctor"
+ruby-1.9.2-preview1 > File.open("hello.latin1", "r:ISO-8859-1").read
+ => "Hello I am V?ctor"
+ruby-1.9.2-preview1 > File.open("hello.latin1", "r:ISO-8859-1").read.encoding
+ => #<Encoding:ISO-8859-1>
+ruby-1.9.2-preview1 > File.open("hello.latin1", "r:ISO-8859-1:UTF-8").read
+ => "Hello I am Víctor"
+ruby-1.9.2-preview1 > File.open("hello.latin1", "r:ISO-8859-1:UTF-8").read.encoding
+ => #<Encoding:UTF-8>
+
+
+Internal Encoding and External Encoding (defaults):
+
+ruby-1.9.2-preview1 > Encoding.default_internal = "UTF-8"
+ => "UTF-8"
+ruby-1.9.2-preview1 > Encoding.default_external = "ISO-8859-1"
+ => "ISO-8859-1"
+ruby-1.9.2-preview1 > File.open("hello.latin1").read
+ => "Hello I am Víctor"
+
+Exceptions:
+
+ruby-1.9.2-preview1 > "Hello".encode("ASCII-8BIT")
+ => "Hello "
+ruby-1.9.2-preview1 > "Hello I am Víctor".encode("ASCII-8BIT")
+Encoding::UndefinedConversionError: U+00ED from UTF-8 to ASCII-8BIT
+	from (irb):19:in `encode'
+	from (irb):19
+	from /Users/victor/.rvm/rubies/ruby-1.9.2-preview1/bin/irb:17:in `<main>'
+
+ruby-1.9.2-preview1 > b =  File.open("hello.utf8", "r:binary").read
+ => "Hello I am V\xC3\xADctor"
+ruby-1.9.2-preview1 > b.encoding
+ => #<Encoding:ASCII-8BIT>
+ruby-1.9.2-preview1 > b << "Hello I am Víctor"
+Encoding::CompatibilityError: incompatible character encodings: ASCII-8BIT and UTF-8
+	from (irb):3
+	from /Users/victor/.rvm/rubies/ruby-1.9.2-preview1/bin/irb:17:in `<main>'
 
 Erlang:
 
