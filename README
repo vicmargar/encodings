@@ -1,1 +1,393 @@
-Character Sets and Character Encodings.If you get bored, take a look at: http://www.rathergood.com/laibachASCII: http://http://ascii-table.com/ 7 bits (127 characters)Different uses for that remaining bit (code pages):http://www.i18nguy.com/unicode/codepages.html#msftdosThis kind of worked for a while, as long as documents where used on the same machineas they were created, and you only had to deal with one language.As soon as the Internet happened it became quite common to move strings from onemachine to another.Unicode:It's an effort to create a character set that includes every writing system in theplanet, including dead and ficticious languages.A letter is mapped to a number (code point) and this is just a concept, it has nothingto do with its physical representation.Some of the problems in defining this standard have to do with identifying whichletters in different languages are actually the same.open U0000.pdfopen U0B80.pdfhttp://www.unicode.org/charts/HelloU+0048 U+0065 U+006C U+006C U+006FEncodings:One obvious way of encoding those code points would be using 2 bytes per code point:00 48 00 65 00 6C 00 6C 00 6FBut this could also be:48 00 65 00 6C 00 6C 00 6F 00This is actually UTF-16/UCS2 and it has both little endian and big endian mode.There is a convention to store a Byte Order Mask (BOM) at the beginning of the file:FE FF or FF FE but it's not always thereEncoding English in this way wastes a lot of space since most characters are below +U00FFUnicode Transformation Format-8 (UTF-8):UTF-8 encodes each Unicode character as a variable number of 1 to 4 octets, where the number of octets depends onthe integer value assigned to the Unicode character. It is an efficient encoding of Unicode documents that usemostly US-ASCII characters because it represents each character in the range U+0000 through U+007F as a single octet.UTF-8 is the default encoding for XML.Hello - 48 65 6C 6C 6FThere is also UCS4/UTF32 - Really inefficient.UTF-8 is more efficient for western languages but for other languages UTF-16 can be more efficient.Open hello.latin1 and hello.utf8 in TextViewerOpen hello.latin1 and hello.utf8 in Chrome, change encoding of both files.victor@victor ~/encodings (master)*$ xxd hello.utf80000000: 4865 6c6c 6f20 4920 616d 2056 c3ad 6374  Hello I am V..ct0000010: 6f72                                     orvictor@victor ~/encodings (master)*$ xxd hello.latin10000000: 4865 6c6c 6f20 4920 616d 2056 ed63 746f  Hello I am V.cto0000010: 72                                       rSee how ASCII characters are encoded the same in utf8 and latin1.See how UTF8 encoding takes more space for some characters.Text without knowing it's encoding doesn't mean anything, it's just bytes.How to specify encoding:HTTP   - Content Type Header.HTML   - Content Type meta tag. This could be tricky but it isn't. The meta tag should be the first thing in thehead section. Browsers try to guess based on frequency of bytes.E-mail - Content Type HeaderRuby 1.8:victor@victor ~/encodings (master)*$ rvm 1.8.6victor@victor ~/encodings (master)*$ irbruby-1.8.6-p399 > latin1 = File.open("hello.latin1").read => "Hello I am V\355ctor"ruby-1.8.6-p399 > 0355 => 237ruby-1.8.6-p399 > 237.to_s(16) => "ed"ruby-1.8.6-p399 > utf8 = File.open("hello.utf8").read => "Hello I am V\303\255ctor"ruby-1.8.6-p399 > 0303 => 195ruby-1.8.6-p399 > 195.to_s(16) => "c3"ruby-1.8.6-p399 > 0255 => 173ruby-1.8.6-p399 > 173.to_s(16) => "ad"ruby-1.8.6-p399 > latin1 << utf8 => "Hello I am V\355ctorHello I am V\303\255ctor"Ruby 1.8 has some support for Encodings:victor@victor ~/encodings (master)*$ irbruby-1.8.6-p399 > utf8 = File.open("hello.utf8").read => "Hello I am V\303\255ctor"ruby-1.8.6-p399 > $KCODE = "U" => "U"ruby-1.8.6-p399 > utf8 = File.open("hello.utf8").read => "Hello I am Víctor"There are 4 possible values for $KCODE:NONE: "N"EUC: "E" Asian EncodingShift-JS: "S" Asian EncodingUTF-8: "U"Support in regular expressions:ruby -e 'p "Résumé".scan(/./m)'["R", "\303", "\251", "s", "u", "m", "\303", "\251"]ruby -e 'p "Résumé".scan(/./mu)'["R", "\303\251", "s", "u", "m", "\303\251"]ruby -e 'p "Résumé".size'8ruby -e 'p "Résumé".scan(/./mu).size'6ruby -e 'p "Résumé".unpack("U*")'[82, 233, 115, 117, 109, 233]ruby -e 'p "Résumé"'"R\303\251sum\303\251"ruby -KUe 'p "Résumé"'"Résumé"ruby -KUe 'p "Résumé".scan(/./m)'["R", "é", "s", "u", "m", "é"]#!/usr/bin/env ruby -wKUIconv: C library to handle character conversioniconv --listirbruby-1.8.6-p399 > $KCODE = "U" => "U"ruby-1.8.6-p399 > require "iconv" => trueruby-1.8.6-p399 > latin1 = File.open("hello.latin1").read => "Hello I am V?ctor"ruby-1.8.6-p399 > utf8 = File.open("hello.utf8").read => "Hello I am Víctor"ruby-1.8.6-p399 > latin1_in_utf8 = Iconv.conv("UTF8", "LATIN1", latin1) => "Hello I am Víctor"ruby-1.8.6-p399 > latin1_in_utf8 + utf8 => "Hello I am VíctorHello I am Víctor"Problems with 1.8 encoding support:No enough encodings supportedRegexp-only support just isn't comprehensive enough$KCODE is a global setting for all encodingsRuby 1.9:In Ruby 1.9 Strings are both raw bytes plus information about the encoding.This is different from other languages that favour only 1 type of encoding (UTF-8).p __ENCODING__ruby encoding-1.9.rb#<Encoding:US-ASCII>ruby encoding-1.9_comment.rb#<Encoding:UTF-8>-e gets the encoding from the environment:echo $LANGen_GB.UTF-8ruby -e 'p __ENCODING__'#<Encoding:UTF-8>ruby -e 'p "Résumé".scan(/./m)'["R", "é", "s", "u", "m", "é"]ruby -e 'p "Résumé".size'6ruby -e 'p "Résumé".encoding'#<Encoding:UTF-8>ruby -e 'p "Résumé".size'6ruby -e 'p "Résumé".encoding'#<Encoding:UTF-8>ruby -e 'p "Résumé".each_byte{|b| p b}'82195169115117109195169"Résumé"ruby -e 'p "Résumé".each_char{|c| p c}'"R""é""s""u""m""é""Résumé"ruby -e 'p "Résumé".each_codepoint{|c| p c}'82233115117109233"Résumé"ruby -e 'p "Résumé".bytes.to_a'[82, 195, 169, 115, 117, 109, 195, 169]Encode Method: (Changes encoding metadata + raw bytes)ruby -e 'p "Résumé".encode("ISO-8859-1")'"R?sum?"ruby -e 'p "Résumé".encode("ISO-8859-1").size'6ruby -e 'p "Résumé".encode("ISO-8859-1").encoding'#<Encoding:ISO-8859-1>ruby -e 'p "Résumé".encode("ISO-8859-1").bytes.to_a'[82, 233, 115, 117, 109, 233]Force Encoding: (only changes metadata)ruby -e 'p [82, 233, 115, 117, 109, 233].map{|c| c.to_s(16)}'["52", "e9", "73", "75", "6d", "e9"]ruby -e 'p "\x52\xe9\x73\x75\x6d\xe9"'"R\xE9sum\xE9"ruby -e 'p "\x52\xe9\x73\x75\x6d\xe9".encoding'#<Encoding:UTF-8>ruby -e 'p "\x52\xe9\x73\x75\x6d\xe9".force_encoding("ISO-8859-1")'"R?sum?"ruby -e 'p "\x52\xe9\x73\x75\x6d\xe9".force_encoding("ISO-8859-1").encode("UTF-8")'"Résumé"Read a file specifying external and internal encoding:rvm 1.9.2irbruby-1.9.2-preview1 > File.open("hello.latin1").read => "Hello I am V\xEDctor"ruby-1.9.2-preview1 > File.open("hello.latin1", "r:ISO-8859-1").read => "Hello I am V?ctor"ruby-1.9.2-preview1 > File.open("hello.latin1", "r:ISO-8859-1").read.encoding => #<Encoding:ISO-8859-1>ruby-1.9.2-preview1 > File.open("hello.latin1", "r:ISO-8859-1:UTF-8").read => "Hello I am Víctor"ruby-1.9.2-preview1 > File.open("hello.latin1", "r:ISO-8859-1:UTF-8").read.encoding => #<Encoding:UTF-8>Internal Encoding and External Encoding (defaults):ruby-1.9.2-preview1 > Encoding.default_internal = "UTF-8" => "UTF-8"ruby-1.9.2-preview1 > Encoding.default_external = "ISO-8859-1" => "ISO-8859-1"ruby-1.9.2-preview1 > File.open("hello.latin1").read => "Hello I am Víctor"Exceptions:ruby-1.9.2-preview1 > "Hello".encode("ASCII-8BIT") => "Hello "ruby-1.9.2-preview1 > "Hello I am Víctor".encode("ASCII-8BIT")Encoding::UndefinedConversionError: U+00ED from UTF-8 to ASCII-8BIT	from (irb):19:in `encode'	from (irb):19	from /Users/victor/.rvm/rubies/ruby-1.9.2-preview1/bin/irb:17:in `<main>'ruby-1.9.2-preview1 > b =  File.open("hello.utf8", "r:binary").read => "Hello I am V\xC3\xADctor"ruby-1.9.2-preview1 > b.encoding => #<Encoding:ASCII-8BIT>ruby-1.9.2-preview1 > b << "Hello I am Víctor"Encoding::CompatibilityError: incompatible character encodings: ASCII-8BIT and UTF-8	from (irb):3	from /Users/victor/.rvm/rubies/ruby-1.9.2-preview1/bin/irb:17:in `<main>'Erlang:A string is just a list of numbers:[65, 66, 67, 68]."ABCD"[65, 66, 67, 68] == "ABCD".trueErlang assumes by default ISO-8859-1:[82, 233, 115, 117, 109, 233]."Résumé"[82, 233, 115, 117, 109, 233,256].[82,233,115,117,109,233,256]A list of integer takes 8 bytes per element, 4 for the integer and 4 for the pointer to the next element (double in 64 bit architecture).A binary takes just 1 byte per character:list_to_binary([82, 233, 115, 117, 109, 233]).<<"Résumé">>Unicode support:io:getopts().[{expand_fun,#Fun<group.0.120017273>}, {echo,true}, {binary,false}, {encoding,unicode}]U = unicode:characters_to_binary([82,233,115,117,109,233], utf8).<<"RÃ©sumÃ©">>io:format("~s~n",[U]).RÃ©sumÃ©okio:format("~ts~n",[U]).Résuméunicode:characters_to_list(<<"RÃ©sumÃ©">>)."Résumé"<<First/utf8, Second/utf8, Rest/binary>> = <<"RÃ©sumÃ©">>.<<"RÃ©sumÃ©">>First.82Second.233[First, Second]."Ré"Modules that are unicode aware: unicode, io, file, re, wx.string, except to_upper and to_lower.GSM:http://www.dreamfabric.com/sms/default_alphabet.htmlIt contains 127 + 10 characters, representable in 7 bits (10 of them need an escape character).That's why a SMS can contain a maximum of 140 bytes but 160 characters (not escaped).Some operators accept data already encoded in GSM, others only accept a default alphabet that they translate into GSM so not all GSM characters can be sent to all operators.Handsets also support UCS but size is limited to 70 characters.References:http://www.unicode.orghttp://www.utf-8.com/http://www.joelonsoftware.com/articles/Unicode.htmlhttp://blog.grayproductions.net/categories/character_encodingshttp://yehudakatz.com/2010/05/17/encodings-unabridged/http://nuclearsquid.com/writings/ruby-1-9-encodings.htmlhttp://ftp.sunet.se/pub/lang/erlang/doc/man/unicode.html
+Character Sets and Character Encodings.
+
+ASCII: http://http://ascii-table.com/ 7 bits (127 characters)
+
+Different uses for that remaining bit (code pages):
+http://www.i18nguy.com/unicode/codepages.html#msftdos
+
+This kind of worked for a while, as long as documents where used on the same machine
+as they were created, and you only had to deal with one language.
+
+As soon as the Internet happened it became quite common to move strings from one
+machine to another.
+
+Unicode:
+
+It's an effort to create a character set that includes every writing system in the
+planet, including dead and ficticious languages.
+
+A letter is mapped to a number (code point) and this is just a concept, it has nothing
+to do with its physical representation.
+
+Some of the problems in defining this standard have to do with identifying which
+letters in different languages are actually the same.
+
+open U0000.pdf
+open U0B80.pdf
+http://www.unicode.org/charts/
+
+Hello
+U+0048 U+0065 U+006C U+006C U+006F
+
+Encodings:
+
+One obvious way of encoding those code points would be using 2 bytes per code point:
+00 48 00 65 00 6C 00 6C 00 6F
+
+But this could also be:
+48 00 65 00 6C 00 6C 00 6F 00
+
+This is actually UTF-16/UCS2 and it has both little endian and big endian mode.
+There is a convention to store a Byte Order Mask (BOM) at the beginning of the file:
+FE FF or FF FE but it's not always there
+
+Encoding English in this way wastes a lot of space since most characters are below +U00FF
+
+Unicode Transformation Format-8 (UTF-8):
+UTF-8 encodes each Unicode character as a variable number of 1 to 4 octets, where the number of octets depends on
+the integer value assigned to the Unicode character. It is an efficient encoding of Unicode documents that use
+mostly US-ASCII characters because it represents each character in the range U+0000 through U+007F as a single octet.
+UTF-8 is the default encoding for XML.
+
+Hello - 48 65 6C 6C 6F
+
+There is also UCS4/UTF32 - Really inefficient.
+
+UTF-8 is more efficient for western languages but for other languages UTF-16 can be more efficient.
+
+Open hello.latin1 and hello.utf8 in TextViewer
+Open hello.latin1 and hello.utf8 in Chrome, change encoding of both files.
+
+victor@victor ~/encodings (master)*$ xxd hello.utf8
+0000000: 4865 6c6c 6f20 4920 616d 2056 c3ad 6374  Hello I am V..ct
+0000010: 6f72                                     or
+victor@victor ~/encodings (master)*$ xxd hello.latin1
+0000000: 4865 6c6c 6f20 4920 616d 2056 ed63 746f  Hello I am V.cto
+0000010: 72                                       r
+
+
+See how ASCII characters are encoded the same in utf8 and latin1.
+See how UTF8 encoding takes more space for some characters.
+
+Text without knowing it's encoding doesn't mean anything, it's just bytes.
+How to specify encoding:
+HTTP   - Content Type Header.
+HTML   - Content Type meta tag. This could be tricky but it isn't. The meta tag should be the first thing in the
+head section. Browsers try to guess based on frequency of bytes.
+E-mail - Content Type Header
+
+Ruby 1.8:
+
+victor@victor ~/encodings (master)*$ rvm 1.8.6
+victor@victor ~/encodings (master)*$ irb
+ruby-1.8.6-p399 > latin1 = File.open("hello.latin1").read
+ => "Hello I am V\355ctor"
+ruby-1.8.6-p399 > 0355
+ => 237
+ruby-1.8.6-p399 > 237.to_s(16)
+ => "ed"
+ruby-1.8.6-p399 > utf8 = File.open("hello.utf8").read
+ => "Hello I am V\303\255ctor"
+ruby-1.8.6-p399 > 0303
+ => 195
+ruby-1.8.6-p399 > 195.to_s(16)
+ => "c3"
+ruby-1.8.6-p399 > 0255
+ => 173
+ruby-1.8.6-p399 > 173.to_s(16)
+ => "ad"
+
+ruby-1.8.6-p399 > latin1 << utf8
+ => "Hello I am V\355ctorHello I am V\303\255ctor"
+
+Ruby 1.8 has some support for Encodings:
+
+victor@victor ~/encodings (master)*$ irb
+ruby-1.8.6-p399 > utf8 = File.open("hello.utf8").read
+ => "Hello I am V\303\255ctor"
+ruby-1.8.6-p399 > $KCODE = "U"
+ => "U"
+ruby-1.8.6-p399 > utf8 = File.open("hello.utf8").read
+ => "Hello I am Víctor"
+
+There are 4 possible values for $KCODE:
+NONE: "N"
+EUC: "E" Asian Encoding
+Shift-JS: "S" Asian Encoding
+UTF-8: "U"
+
+Support in regular expressions:
+
+ruby -e 'p "Résumé".scan(/./m)'
+["R", "\303", "\251", "s", "u", "m", "\303", "\251"]
+
+ruby -e 'p "Résumé".scan(/./mu)'
+["R", "\303\251", "s", "u", "m", "\303\251"]
+
+ruby -e 'p "Résumé".size'
+8
+
+ruby -e 'p "Résumé".scan(/./mu).size'
+6
+
+ruby -e 'p "Résumé".unpack("U*")'
+[82, 233, 115, 117, 109, 233]
+
+ruby -e 'p "Résumé"'
+"R\303\251sum\303\251"
+
+ruby -KUe 'p "Résumé"'
+"Résumé"
+
+ruby -KUe 'p "Résumé".scan(/./m)'
+["R", "é", "s", "u", "m", "é"]
+
+#!/usr/bin/env ruby -wKU
+
+Iconv: C library to handle character conversion
+
+iconv --list
+
+irb
+ruby-1.8.6-p399 > $KCODE = "U"
+ => "U"
+ruby-1.8.6-p399 > require "iconv"
+ => true
+ruby-1.8.6-p399 > latin1 = File.open("hello.latin1").read
+ => "Hello I am V?ctor"
+ruby-1.8.6-p399 > utf8 = File.open("hello.utf8").read
+ => "Hello I am Víctor"
+ruby-1.8.6-p399 > latin1_in_utf8 = Iconv.conv("UTF8", "LATIN1", latin1)
+ => "Hello I am Víctor"
+ruby-1.8.6-p399 > latin1_in_utf8 + utf8
+ => "Hello I am VíctorHello I am Víctor"
+
+Problems with 1.8 encoding support:
+
+No enough encodings supported
+Regexp-only support just isn't comprehensive enough
+$KCODE is a global setting for all encodings
+
+Ruby 1.9:
+
+In Ruby 1.9 Strings are both raw bytes plus information about the encoding.
+This is different from other languages that favour only 1 type of encoding (UTF-8).
+
+p __ENCODING__
+
+ruby encoding-1.9.rb
+#<Encoding:US-ASCII>
+
+ruby encoding-1.9_comment.rb
+#<Encoding:UTF-8>
+
+-e gets the encoding from the environment:
+
+echo $LANG
+en_GB.UTF-8
+
+ruby -e 'p __ENCODING__'
+#<Encoding:UTF-8>
+
+ruby -e 'p "Résumé".scan(/./m)'
+["R", "é", "s", "u", "m", "é"]
+
+ruby -e 'p "Résumé".size'
+6
+
+ruby -e 'p "Résumé".encoding'
+#<Encoding:UTF-8>
+
+ruby -e 'p "Résumé".size'
+6
+
+ruby -e 'p "Résumé".encoding'
+#<Encoding:UTF-8>
+
+ruby -e 'p "Résumé".each_byte{|b| p b}'
+82
+195
+169
+115
+117
+109
+195
+169
+"Résumé"
+
+ruby -e 'p "Résumé".each_char{|c| p c}'
+"R"
+"é"
+"s"
+"u"
+"m"
+"é"
+"Résumé"
+
+ruby -e 'p "Résumé".each_codepoint{|c| p c}'
+82
+233
+115
+117
+109
+233
+"Résumé"
+
+ruby -e 'p "Résumé".bytes.to_a'
+[82, 195, 169, 115, 117, 109, 195, 169]
+
+Encode Method: (Changes encoding metadata + raw bytes)
+
+ruby -e 'p "Résumé".encode("ISO-8859-1")'
+"R?sum?"
+
+ruby -e 'p "Résumé".encode("ISO-8859-1").size'
+6
+
+ruby -e 'p "Résumé".encode("ISO-8859-1").encoding'
+#<Encoding:ISO-8859-1>
+
+ruby -e 'p "Résumé".encode("ISO-8859-1").bytes.to_a'
+[82, 233, 115, 117, 109, 233]
+
+Force Encoding: (only changes metadata)
+
+ruby -e 'p [82, 233, 115, 117, 109, 233].map{|c| c.to_s(16)}'
+["52", "e9", "73", "75", "6d", "e9"]
+
+ruby -e 'p "\x52\xe9\x73\x75\x6d\xe9"'
+"R\xE9sum\xE9"
+
+ruby -e 'p "\x52\xe9\x73\x75\x6d\xe9".encoding'
+#<Encoding:UTF-8>
+
+ruby -e 'p "\x52\xe9\x73\x75\x6d\xe9".force_encoding("ISO-8859-1")'
+"R?sum?"
+
+ruby -e 'p "\x52\xe9\x73\x75\x6d\xe9".force_encoding("ISO-8859-1").encode("UTF-8")'
+"Résumé"
+
+Read a file specifying external and internal encoding:
+
+rvm 1.9.2
+irb
+
+ruby-1.9.2-preview1 > File.open("hello.latin1").read
+ => "Hello I am V\xEDctor"
+ruby-1.9.2-preview1 > File.open("hello.latin1", "r:ISO-8859-1").read
+ => "Hello I am V?ctor"
+ruby-1.9.2-preview1 > File.open("hello.latin1", "r:ISO-8859-1").read.encoding
+ => #<Encoding:ISO-8859-1>
+ruby-1.9.2-preview1 > File.open("hello.latin1", "r:ISO-8859-1:UTF-8").read
+ => "Hello I am Víctor"
+ruby-1.9.2-preview1 > File.open("hello.latin1", "r:ISO-8859-1:UTF-8").read.encoding
+ => #<Encoding:UTF-8>
+
+
+Internal Encoding and External Encoding (defaults):
+
+ruby-1.9.2-preview1 > Encoding.default_internal = "UTF-8"
+ => "UTF-8"
+ruby-1.9.2-preview1 > Encoding.default_external = "ISO-8859-1"
+ => "ISO-8859-1"
+ruby-1.9.2-preview1 > File.open("hello.latin1").read
+ => "Hello I am Víctor"
+
+Exceptions:
+
+ruby-1.9.2-preview1 > "Hello".encode("ASCII-8BIT")
+ => "Hello "
+ruby-1.9.2-preview1 > "Hello I am Víctor".encode("ASCII-8BIT")
+Encoding::UndefinedConversionError: U+00ED from UTF-8 to ASCII-8BIT
+	from (irb):19:in `encode'
+	from (irb):19
+	from /Users/victor/.rvm/rubies/ruby-1.9.2-preview1/bin/irb:17:in `<main>'
+
+ruby-1.9.2-preview1 > b =  File.open("hello.utf8", "r:binary").read
+ => "Hello I am V\xC3\xADctor"
+ruby-1.9.2-preview1 > b.encoding
+ => #<Encoding:ASCII-8BIT>
+ruby-1.9.2-preview1 > b << "Hello I am Víctor"
+Encoding::CompatibilityError: incompatible character encodings: ASCII-8BIT and UTF-8
+	from (irb):3
+	from /Users/victor/.rvm/rubies/ruby-1.9.2-preview1/bin/irb:17:in `<main>'
+
+Erlang:
+
+A string is just a list of numbers:
+
+[65, 66, 67, 68].
+"ABCD"
+
+[65, 66, 67, 68] == "ABCD".
+true
+
+Erlang assumes by default ISO-8859-1:
+
+[82, 233, 115, 117, 109, 233].
+"Résumé"
+
+[82, 233, 115, 117, 109, 233,256].
+[82,233,115,117,109,233,256]
+
+A list of integer takes 8 bytes per element, 4 for the integer and 4 for the pointer to the next element (double in 64 bit architecture).
+
+A binary takes just 1 byte per character:
+
+list_to_binary([82, 233, 115, 117, 109, 233]).
+<<"Résumé">>
+
+Unicode support:
+
+io:getopts().
+[{expand_fun,#Fun<group.0.120017273>},
+ {echo,true},
+ {binary,false},
+ {encoding,unicode}]
+
+U = unicode:characters_to_binary([82,233,115,117,109,233], utf8).
+<<"RÃ©sumÃ©">>
+
+io:format("~s~n",[U]).
+RÃ©sumÃ©
+ok
+
+io:format("~ts~n",[U]).
+Résumé
+
+unicode:characters_to_list(<<"RÃ©sumÃ©">>).
+"Résumé"
+
+<<First/utf8, Second/utf8, Rest/binary>> = <<"RÃ©sumÃ©">>.
+<<"RÃ©sumÃ©">>
+
+First.
+82
+
+Second.
+233
+
+[First, Second].
+"Ré"
+
+Modules that are unicode aware: unicode, io, file, re, wx.
+
+string, except to_upper and to_lower.
+
+GSM:
+http://www.dreamfabric.com/sms/default_alphabet.html
+It contains 127 + 10 characters, representable in 7 bits (10 of them need an escape character).
+That's why a SMS can contain a maximum of 140 bytes but 160 characters (not escaped).
+
+Some operators accept data already encoded in GSM, others only accept a default alphabet that they translate into GSM so not all GSM characters can be sent to all operators.
+
+Handsets also support UCS but size is limited to 70 characters.
+
+References:
+http://www.unicode.org
+http://www.utf-8.com/
+http://www.joelonsoftware.com/articles/Unicode.html
+http://blog.grayproductions.net/categories/character_encodings
+http://yehudakatz.com/2010/05/17/encodings-unabridged/
+http://nuclearsquid.com/writings/ruby-1-9-encodings.html
+http://ftp.sunet.se/pub/lang/erlang/doc/man/unicode.html
